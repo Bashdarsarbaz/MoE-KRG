@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>سیستەمی هەڵبژاردنی ناوەکان</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Naskh+Arabic:wght@400..700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Naskh Arabic', serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        #selectedNameDisplay {
+            font-size: 24px;
+            margin-top: 20px;
+            font-weight: bold;
+            display: none; /* Initially hidden */
+        }
+        #nameList {
+            height: 150px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        .scrolling-name {
+            font-size: 18px;
+            line-height: 2;
+        }
+        table {
+            margin-top: 20px;
+        }
+        .logo-container {
+            margin-bottom: 20px;
+        }
+        .logo-container img {
+            max-width: 200px;
+        }
+        .logo-container h2 {
+            margin-top: 10px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <!-- Replace 'path/to/your/logo.png' with the actual path to your KRG logo -->
+            <img src="https://gov.krd/media/2893/krg_logo_2480x2056.png" alt="KRG Logo">
+            <h2>حکومەتی هەرێمی کوردستان</h2>
+            <h2>وەزارەتی پەروەردە</h2>
+            <h2>کۆمەڵگەی پەروەردەیی هاوچەرخ   </h2>
+            <h2>سیستەمی هەڵبژاردنی ناوی قوتابیان</h2>
+        </div>
+        <br>
+        <br>
+        <br>
+        <div class="form-group">
+            <!-- Accept only .xlsx files -->
+            <input type="file" id="excelFileInput" accept=".xlsx" class="form-control-file mb-3" />
+        </div>
+        <button class="btn btn-primary btn-lg" onclick="startPicking()">هەڵبژێرە</button>
+        <button class="btn btn-success btn-lg" onclick="downloadSelectedList()">داگرتنی لیستی هەڵبژێردراو</button>
+        
+        <div id="selectedNameDisplay" class="alert alert-info mt-4"></div>
+        
+        <div id="nameList">
+            <div id="scrollingNames" class="scrolling-name"></div>
+        </div>
+        
+        <div class="selected-names mt-4">
+            <h2>ناوە هەڵبژێردراوەکان:</h2>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>ژمارە</th>
+                        <th>ناو</th>
+                    </tr>
+                </thead>
+                <tbody id="selectedNamesTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Include SheetJS library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <script>
+        let names = [];
+        let selectedNames = [];
+
+        // Function to parse Excel file
+        document.getElementById('excelFileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // Assuming the first sheet is the one we want
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert the sheet to JSON
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                // Extract names from the first column and filter empty values
+                names = jsonData.map(row => row[0]).filter(name => name);
+                alert('فایلەکە بە سەرکەوتووی بارکرا کە پێك هاتووە لە ' + names.length + ' ناو.');
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Function to start picking a name with animation
+        function startPicking() {
+            if (names.length === 0) {
+                alert('هیچ ناوێک بەردەست نیە. تکایە سەرەتا فایلێکی Excel باربکە.');
+                return;
+            }
+
+            let startTime = Date.now();
+            let duration = 5000; // 5 seconds
+            let interval = setInterval(() => {
+                // Calculate elapsed time
+                let elapsed = Date.now() - startTime;
+
+                // Randomly select a name to display during animation
+                let randomName = names[Math.floor(Math.random() * names.length)];
+                document.getElementById('scrollingNames').textContent = randomName;
+
+                // Stop the animation after the duration
+                if (elapsed > duration) {
+                    clearInterval(interval);
+                    pickRandomName(randomName); // Pass the randomName to the final selection
+                }
+            }, 100);
+        }
+
+        // Function to pick a random name and update the table
+        function pickRandomName(randomName) {
+            if (names.length === 0) {
+                alert('هیچ ناوێك نیە بۆ هەڵبژاردن.');
+                return;
+            }
+
+            const selectedName = randomName;
+            names = names.filter(name => name !== selectedName); // Ensure name is not picked again
+            selectedNames.push(selectedName);
+
+            // Show the selected name and "Congratulations" message
+            const displayElement = document.getElementById('selectedNameDisplay');
+            displayElement.textContent = 'پیرۆزە: ' + selectedName + ' - تۆ هەڵبژێردرایت';
+            displayElement.style.display = 'block';
+
+            // Hide the "Congratulations" message after 2 seconds
+            setTimeout(() => {
+                displayElement.style.display = 'none';
+            }, 100000);
+
+            // Add the selected name to the table with numbering
+            const tableBody = document.getElementById('selectedNamesTable');
+            const newRow = tableBody.insertRow();
+            const numberCell = newRow.insertCell(0);
+            const nameCell = newRow.insertCell(1);
+
+            numberCell.textContent = selectedNames.length; // Serial number
+            nameCell.textContent = selectedName; // Name
+
+            saveNameAsImage(selectedName);
+        }
+
+        // Function to save the selected name as an image
+        function saveNameAsImage(name) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.font = '30px Arial';
+            ctx.fillText(name, 10, 50);
+            const imgURL = canvas.toDataURL('image/png');
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = imgURL;
+            downloadLink.download = name + '.png';
+            downloadLink.click();
+        }
+
+        // Function to download the selected names list as XLSX
+        function downloadSelectedList() {
+            if (selectedNames.length === 0) {
+                alert('هیچ نیە بۆ هەڵبژێردن');
+                return;
+            }
+
+            // Prepare data for Excel
+            const data = selectedNames.map((name, index) => [index + 1, name]); // Two columns: Number and Name
+            data.unshift(['ژمارە', 'ناو']); // Add headers
+
+            // Create a new workbook and add a new worksheet
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Selected Names');
+
+            // Write the workbook to a binary array
+            XLSX.writeFile(workbook, 'لیستی_قوتابیە هەڵبژێردراوەکان.xlsx');
+        }
+    </script>
+</body>
+</html>
